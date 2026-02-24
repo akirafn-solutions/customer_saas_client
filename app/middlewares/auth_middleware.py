@@ -89,7 +89,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             
             # HEADERS DE SEGURANÇA
-            response.headers["X-App-ID"] = str(config.APP_ID)
+            response.headers["X-App-ID"] = str(config.API_APP_ID)
             response.headers["X-API-Version"] = config.API_VERSION
             response.headers["X-RateLimit-Limit"] = str(client.rate_limit)
             response.headers["X-RateLimit-Remaining"] = str(
@@ -290,19 +290,11 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         start_time = datetime.now(timezone.utc)
-        
-        # Log request
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        
         response = await call_next(request)
-        
-        # Log response
         process_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
-        
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Process-Time"] = str(round(process_time, 2))
-        
-        # Se for muito lento, loga alerta
         if process_time > 1000:
             print(f"⚠️ Request lento: {request.url.path} - {process_time}ms")
         

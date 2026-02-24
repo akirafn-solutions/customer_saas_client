@@ -1,9 +1,15 @@
-from fastapi import APIRouter, HTTPException, Query
-from typing import Optional
+from app.api.utils.api_caller import api_request
+from app.core.config import settings as config
+from app.schemas.schemas import PaginatedProductsResponse, ProductResponse, CategoryResponse, ContactFormCreate, ContactFormResponse, MainPageContentResponse, FeaturedProductResponse
+from fastapi import APIRouter, HTTPException, Depends, Query
+from typing import List, Optional
 import logging
 
 router = APIRouter()
 logger = logging.getLogger("fastapi_app")
+
+BACKEND_URL = config.API_WMS_URL
+ENDPOINT_WMS_FEAT_PROD = config.ENDPOINT_WMS_FEAT_PROD
 
 # Incluir rotas de produtos
 #router.include_router(products_wms.router)
@@ -13,18 +19,23 @@ def validate_search_query(q: Optional[str] = Query(None, min_length=2, max_lengh
         raise HTTPException(status_code=400, detail="Invalid search query")
     return q
 
+def formatar_preco(valor) -> str:
+    if valor is None:
+        return "R$ 0,00"
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 # Products endpoints
 @router.get("/")
 async def list_products():
     return True
 
-@router.get("/featured")
+@router.get("/featured", response_model=List[FeaturedProductResponse])
 async def list_featured_products():
     products = [
     {
         "name": "Kit Presente Premium",
         "price": "R$ 299,90",
-        "image": "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&auto=format&fit=crop",
+        "image": ["https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&auto=format&fit=crop","https://images.unsplash.com/photo-1511381939415-e44015466834?w=800&auto=format&fit=crop"],
         "category": "Presentes"
     },
     {
@@ -70,8 +81,22 @@ async def list_featured_products():
         "category": "Presentes"
     }
     ]
+    limit: int = 6
+    response = await api_request(endpoint=ENDPOINT_WMS_FEAT_PROD,method="GET",params={"limit": limit})
+    products = response
 
-    return products
+    return [
+        {
+            "id":       p.get("id_produto"),
+            "name":     p.get("nome_comercial"),
+            "price":    formatar_preco(p.get("preco_venda")),
+            "image":    p.get("imagem_principal"),
+            "category": p.get("categoria_nome"),
+            "is_active": p.get("ativo"),
+            "created_at": p.get("data_criacao")
+        }
+        for p in products
+    ]
 
 @router.get("/search")
 async def search_products_endpoint():
