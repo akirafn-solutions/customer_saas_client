@@ -30,10 +30,8 @@ async def get_current_user(authorization: str = Header(...)):
 @router.post("/updloadpicprofile", response_model=UploadPictureResponse)
 async def upload_profile_picture(
     payload: UploadPicturePayload,
-    current_user = ""
+    current_user = Depends(get_current_user)
 ):
-    current_user = get_current_user
-    
     uid = current_user['uid']
     photo_url = str(payload.photo_url)
 

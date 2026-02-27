@@ -80,7 +80,7 @@ class ProductResponse(ProductBase):
     id: int
     is_active: bool
     category_id: Optional[int] = None
-    category: Optional[CategoryResponse] = None
+    category: Optional[str] = None
     images: List[ProductImageResponse] = []
     videos: List[ProductVideoResponse] = []
     product_code: str

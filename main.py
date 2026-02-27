@@ -4,6 +4,7 @@ from app.api import auth_routes, ship_routes, product_routes, google_routes
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.middlewares.auth_middleware import SecurityMiddleware, LoggingMiddleware
+from app.services.firebase_service import initialize_firebase
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +17,7 @@ logger = logging.getLogger("fastapi_app")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Iniciando a aplicação: {settings.PROJECT_NAME} v{settings.PROJECT_VERSION}")
+    initialize_firebase()
 
     yield
     logger.info("Encerrando a aplicação.")
