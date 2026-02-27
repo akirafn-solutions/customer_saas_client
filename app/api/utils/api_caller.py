@@ -61,9 +61,6 @@ async def api_request(
                 headers=base_headers
             )
 
-            print("STATUS:", response.status_code)
-            print("BODY:", response.text)  # <- vai mostrar o erro real da API
-            
             response.raise_for_status()
             return response.json()
         except httpx.ConnectError as e:

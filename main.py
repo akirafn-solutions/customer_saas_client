@@ -1,6 +1,6 @@
 
 import logging
-from app.api import auth_routes, ship_routes, product_routes
+from app.api import auth_routes, ship_routes, product_routes, google_routes
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.middlewares.auth_middleware import SecurityMiddleware, LoggingMiddleware
@@ -48,6 +48,7 @@ app.add_middleware(SecurityMiddleware)
 app.include_router(auth_routes.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(ship_routes.router, prefix="/api/v1/shipping", tags=["Shipping Services"])
 app.include_router(product_routes.router, prefix="/api/v1/products", tags=["Products Services"])
+app.include_router(google_routes.router, prefix="/api/v1/google", tags=["Google Backend Services"])
 
 @app.get("/", tags=["Root"])
 async def read_root():

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, HttpUrl, field_validator
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
@@ -25,6 +25,19 @@ class CategoryBase(BaseModel):
     name: str
     description: Optional[str] = None
     slug: str
+
+class UploadPicturePayload(BaseModel):
+    photo_url: str
+    
+    @field_validator('photo_url')
+    def validate_url(cls, v):
+        if not v.startswith('http' ):
+            raise ValueError('URL deve começar com http ou https' )
+        return v
+
+class UploadPictureResponse(BaseModel):
+    message: str
+    success: bool
 
 class CategoryResponse(CategoryBase):
     id: int

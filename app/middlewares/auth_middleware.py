@@ -12,6 +12,7 @@ from app.schemas.client import AuthModeEnum
 from datetime import datetime, timezone
 from fastapi import Request, HTTPException, Request, Depends
 from fastapi.security import HTTPBearer
+from firebase_admin import auth as firebase_auth
 from jose import jwt
 from starlette.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -36,6 +37,31 @@ async def bloquear_sql_injection(request: Request, call_next):
                 if len(value) > 5000:
                     return JSONResponse(status_code=400, content={"erro": f"Campo {key} muito longo."})
     return await call_next(request)
+
+def verificar_autenticacao(request: Request):
+
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+           print("Acesso não autorizado. Efetuar login 0001.")
+           return False, "Acesso não autorizado. Efetuar login. 0001"
+
+        if not auth_header.startswith('Bearer '):
+            return False, "Acesso não autorizado. Efetuar login. 0002."
+
+        id_token = auth_header.split("Bearer ")[1]
+        
+        decoded_token = firebase_auth.verify_id_token(id_token)
+
+        uid = decoded_token['uid']
+        user_record = firebase_auth.get_user(uid)
+        user_name = user_record.display_name if user_record.display_name else "Usuário Desconhecido"
+
+        # Retorna um dicionário ou objeto com as informações do usuário
+        return True, (uid, user_name) # Retorna o user_name
+        
+    except Exception as e:
+        return False, str(e)
 
 security = HTTPBearer()
 
@@ -174,20 +200,38 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             )
         
         # 6. Valida JWT token (se enviado)
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            token = auth_header.replace("Bearer ", "")
+        auth_header = request.headers.get('Authorization')
+        if not auth_header:
+            raise HTTPException(
+                status_code=403,
+                detail="Acesso não autorizado. 0001."
+            )
+
+        if not auth_header.startswith('Bearer '):
+            raise HTTPException(
+                status_code=403,
+                detail="Acesso não autorizado. 0002."
+            )
+
+        token = auth_header.split("Bearer ")[1]
+
+        try:
+            payload = jwt.decode(
+                token,
+                config.JWT_SECRET_KEY,
+                algorithms=[config.JWT_ALGORITHM]
+            )
+            request.state.user = payload
+        except:
             try:
-                payload = jwt.decode(
-                    token,
-                    config.JWT_SECRET_KEY,
-                    algorithms=[config.JWT_ALGORITHM]
-                )
-                request.state.user = payload
+                autenticado = verificar_autenticacao(token)
+                if not autenticado:
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"erro": f"Não autorizado"})
             except:
                 raise HTTPException(
                     status_code=401,
-                    detail="Token JWT inválido"
+                    detail="Acesso não autorizado. 0003."
                 )
     
     async def check_rate_limit(self, client: Client):
